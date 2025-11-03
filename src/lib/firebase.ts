@@ -29,13 +29,13 @@ import {
 //   measurementId: "G-GCS51YQXD1"
 //};
 const firebaseConfig = {
-  apiKey: "AIzaSyAs3oyeDJ12KHYakwqD0Aglb6T5zUokkVQ",
-  authDomain: "testing-exam-portal.firebaseapp.com",
-  projectId: "testing-exam-portal",
-  storageBucket: "testing-exam-portal.firebasestorage.app",
-  messagingSenderId: "1091896995016",
-  appId: "1:1091896995016:web:05bb2a54263569478dc9fd",
-  measurementId: "G-GCS51YQXD1"
+  apiKey: "AIzaSyAMpaV929i4YE-CXBmoMvb5SP4OgylMrls",
+  authDomain: "hydexam-bc91f.firebaseapp.com",
+  projectId: "hydexam-bc91f",
+  storageBucket: "hydexam-bc91f.firebasestorage.app",
+  messagingSenderId: "951144602659",
+  appId: "1:951144602659:web:07e8418bd9445e217f6596",
+  measurementId: "G-JG91MK70HW"
 };
 
 // const firebaseConfig = {
