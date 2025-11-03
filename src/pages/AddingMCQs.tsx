@@ -210,15 +210,10 @@ Keep it clear, concise, and educational.
         
         
       },
-     body: JSON.stringify({
--  contents: [{ parts: [{ text: prompt }] }],
-+  contents: [
-+    {
-+      role: "user",
-+      parts: [{ text: prompt }]
-+    }
-+  ],
+   body: JSON.stringify({
+  contents: [{ parts: [{ text: prompt }] }],
 }),
+
 
     };
 
