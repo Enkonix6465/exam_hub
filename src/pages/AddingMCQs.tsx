@@ -11,7 +11,7 @@ const AddingMCQs: React.FC = () => {
     startTime: "",
     endTime: "",
     description: "",
-    questionCount: "5", // New field for number of questions
+    questionCount: "5",
   });
 
   const [geminiResponse, setGeminiResponse] = useState("");
@@ -23,10 +23,9 @@ const AddingMCQs: React.FC = () => {
   const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
-    // Fetch users from Firestore ("users" collection)
     const fetchUsers = async () => {
       const snap = await getDocs(collection(db, "users"));
-      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setUsers(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     };
     fetchUsers();
   }, []);
@@ -46,8 +45,6 @@ const AddingMCQs: React.FC = () => {
     setSelectAll(!selectAll);
   };
 
-  // Assign selected MCQs to selected users
-  // Save selected MCQs to 'questions' collection and assign users
   const handleAssignQuestions = async () => {
     if (selectedQuestions.length === 0) {
       alert("Select at least one question");
@@ -59,7 +56,6 @@ const AddingMCQs: React.FC = () => {
     }
     setAssigning(true);
     try {
-      // Parse MCQs from last response
       let mcqs = geminiResponse
         .split(/\d+\.\s+/)
         .filter((q) => q.trim() !== "");
@@ -78,13 +74,12 @@ const AddingMCQs: React.FC = () => {
         return { question, options, answer };
       });
 
-      // For each selected MCQ, add to 'questions' collection with assignedTo
       for (const qIdx of selectedQuestions) {
         const mcq = parsed[qIdx];
         const data = {
           type: "mcq",
-          title: formData.questionTitle, // Short topic/title from form
-          description: mcq.question,     // Main MCQ text as description
+          title: formData.questionTitle,
+          description: mcq.question,
           difficulty: formData.difficulty,
           options: mcq.options,
           answer: mcq.answer,
@@ -104,15 +99,10 @@ const AddingMCQs: React.FC = () => {
     }
   };
 
-  // Function to parse MCQs from text
   const parseMCQs = (response: string) => {
     if (!response) return null;
 
-    let mcqs = response
-      .split(/\d+\.\s+/)
-      .filter((q) => q.trim() !== "");
-
-    // Remove the first item if it looks like an intro/heading (not a real question)
+    let mcqs = response.split(/\d+\.\s+/).filter((q) => q.trim() !== "");
     if (mcqs.length && !/^([A-D]\)|Answer:|\d)/.test(mcqs[0])) {
       mcqs = mcqs.slice(1);
     }
@@ -138,7 +128,10 @@ const AddingMCQs: React.FC = () => {
     return (
       <ol className="space-y-6 mt-4">
         {parsed.map((mcq, idx) => (
-          <li key={idx} className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow border border-slate-200 dark:border-slate-700 flex items-start gap-4">
+          <li
+            key={idx}
+            className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow border border-slate-200 dark:border-slate-700 flex items-start gap-4"
+          >
             <input
               type="checkbox"
               checked={selectedQuestions.includes(idx)}
@@ -151,7 +144,10 @@ const AddingMCQs: React.FC = () => {
               </div>
               <ul className="mb-3 space-y-2">
                 {mcq.options.map((opt, i) => (
-                  <li key={i} className="text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-lg">
+                  <li
+                    key={i}
+                    className="text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-lg"
+                  >
                     {opt}
                   </li>
                 ))}
@@ -168,13 +164,13 @@ const AddingMCQs: React.FC = () => {
     );
   };
 
+  // ✅ FIXED GEMINI API CALL
   async function handleGenerateMCQs() {
     if (!formData.description) {
       alert("Please provide a detailed description of the question!");
       return;
     }
 
-    // Validate question count
     const questionCount = parseInt(formData.questionCount);
     if (isNaN(questionCount) || questionCount < 1 || questionCount > 20) {
       alert("Please enter a valid number of questions between 1 and 20");
@@ -185,46 +181,46 @@ const AddingMCQs: React.FC = () => {
     setGeminiResponse("Generating MCQs... please wait...");
 
     const prompt = `
-Based on the following description, generate ${questionCount} multiple choice questions (MCQs).
-Description: ${formData.description}
-Each question should be of ${formData.difficulty} difficulty level.
-Format each MCQ like this:
+Generate ${questionCount} multiple choice questions (MCQs) on the topic:
+"${formData.description}"
 
-1. Question text here
+Each question should be of ${formData.difficulty} difficulty level and follow this format:
+1. Question text
 A) Option 1
 B) Option 2
 C) Option 3
 D) Option 4
-Answer: C) Option 3
+Answer: B) Option 2
+`;
 
-Keep it clear, concise, and educational.
-    `;
+    // 🔑 Directly use your Gemini API key here
+    const apiKey = "AIzaSyAU2ULHJBssu3ysvG0lU_ylB3PzptMbGvw"; // <-- paste your real key here
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-    const url =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     const options: RequestInit = {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "X-goog-api-key": "AIzaSyCfZOjBS6XFakLn7rj2gE-kPP4Z9tAtcTM",
-        
-        
-      },
-   body: JSON.stringify({
-  contents: [{ parts: [{ text: prompt }] }],
-}),
-
-
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      }),
     };
 
     try {
       const response = await fetch(url, options);
       const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Gemini API error:", data);
+        throw new Error(data.error?.message || "Failed to generate content");
+      }
+
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       setGeminiResponse(text);
-    } catch (error) {
-      console.error(error);
-      setGeminiResponse("Error generating MCQs. Try again!");
+    } catch (error: any) {
+      console.error("Gemini API Error:", error);
+      setGeminiResponse(
+        "❌ Error generating MCQs. Please check your API key or model name."
+      );
     } finally {
       setLoading(false);
     }
@@ -235,35 +231,49 @@ Keep it clear, concise, and educational.
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-slate-800 dark:text-white mb-4">Dashboard</h1>
+          <h1 className="text-4xl font-bold text-slate-800 dark:text-white mb-4">
+            Dashboard
+          </h1>
           <div className="w-24 h-1 bg-blue-500 mx-auto rounded-full"></div>
         </div>
 
         {/* Main Content Card */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 mb-8 border border-slate-200 dark:border-slate-700">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Add New Question</h2>
-          <p className="text-slate-600 dark:text-slate-300 mb-8">Create and manage multiple choice questions</p>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
+            Add New Question
+          </h2>
+          <p className="text-slate-600 dark:text-slate-300 mb-8">
+            Create and manage multiple choice questions
+          </p>
 
           {/* Form Section */}
           <div className="space-y-8">
             {/* Question Type & Difficulty Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">Question Type</label>
+                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">
+                  Question Type
+                </label>
                 <select
                   className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 dark:border-slate-600 transition-all duration-200"
                   value={formData.questionType}
-                  onChange={e => setFormData({ ...formData, questionType: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, questionType: e.target.value })
+                  }
                 >
                   <option>Multiple Choice (MCQ)</option>
                 </select>
               </div>
               <div>
-                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">Difficulty Level</label>
+                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">
+                  Difficulty Level
+                </label>
                 <select
                   className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 dark:border-slate-600 transition-all duration-200"
                   value={formData.difficulty}
-                  onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, difficulty: e.target.value })
+                  }
                 >
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>
@@ -275,21 +285,29 @@ Keep it clear, concise, and educational.
             {/* Time Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">Start Time (optional)</label>
+                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">
+                  Start Time (optional)
+                </label>
                 <input
                   type="datetime-local"
                   className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 dark:border-slate-600 transition-all duration-200"
                   value={formData.startTime}
-                  onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, startTime: e.target.value })
+                  }
                 />
               </div>
               <div>
-                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">End Time (optional)</label>
+                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">
+                  End Time (optional)
+                </label>
                 <input
                   type="datetime-local"
                   className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 dark:border-slate-600 transition-all duration-200"
                   value={formData.endTime}
-                  onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, endTime: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -297,17 +315,23 @@ Keep it clear, concise, and educational.
             {/* Question Title & Count Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">Question Title</label>
+                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">
+                  Question Title
+                </label>
                 <input
                   type="text"
                   className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 dark:border-slate-600 transition-all duration-200"
                   placeholder="Enter a concise question title"
                   value={formData.questionTitle}
-                  onChange={e => setFormData({ ...formData, questionTitle: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, questionTitle: e.target.value })
+                  }
                 />
               </div>
               <div>
-                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">Number of Questions</label>
+                <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">
+                  Number of Questions
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -315,20 +339,28 @@ Keep it clear, concise, and educational.
                   className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 dark:border-slate-600 transition-all duration-200"
                   placeholder="Enter number of questions"
                   value={formData.questionCount}
-                  onChange={e => setFormData({ ...formData, questionCount: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, questionCount: e.target.value })
+                  }
                 />
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Enter between 1-20 questions</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                  Enter between 1-20 questions
+                </p>
               </div>
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">Description</label>
+              <label className="block text-slate-800 dark:text-white font-semibold mb-3 text-lg">
+                Description
+              </label>
               <textarea
                 className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 dark:border-slate-600 transition-all duration-200 resize-none"
                 placeholder="e.g. algorithms, arrays, loops"
                 value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 rows={4}
               />
             </div>
@@ -342,7 +374,9 @@ Keep it clear, concise, and educational.
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0 }}
               onClick={handleGenerateMCQs}
-              className={`px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-lg transition-all duration-200 flex items-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-lg transition-all duration-200 flex items-center gap-2 ${
+                loading ? "opacity-60 cursor-not-allowed" : ""
+              }`}
               disabled={loading}
             >
               {loading ? (
@@ -372,15 +406,21 @@ Keep it clear, concise, and educational.
           {geminiResponse && (
             <>
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700">
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">Generated Questions</h3>
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">
+                  Generated Questions
+                </h3>
                 {parseMCQs(geminiResponse)}
-                
+
                 {/* Assign to Users Section */}
                 <div className="mt-10 pt-8 border-t border-slate-200 dark:border-slate-700">
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Assign to Users</h3>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">
+                    Assign to Users
+                  </h3>
                   <div className="border rounded-xl p-6 bg-slate-50 dark:bg-slate-700/50 max-w-2xl">
                     <div className="flex items-center justify-between mb-4">
-                      <span className="font-semibold text-slate-800 dark:text-white">Select Users</span>
+                      <span className="font-semibold text-slate-800 dark:text-white">
+                        Select Users
+                      </span>
                       <button
                         type="button"
                         className="text-blue-600 hover:underline font-medium text-sm"
@@ -391,7 +431,10 @@ Keep it clear, concise, and educational.
                     </div>
                     <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                       {users.map((user) => (
-                        <label key={user.id} className="flex items-center space-x-4 p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors duration-200">
+                        <label
+                          key={user.id}
+                          className="flex items-center space-x-4 p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors duration-200"
+                        >
                           <input
                             type="checkbox"
                             checked={selectedUsers.includes(user.id)}
@@ -399,8 +442,12 @@ Keep it clear, concise, and educational.
                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
                           />
                           <div className="flex-1">
-                            <p className="font-medium text-slate-900 dark:text-white">{user.fullName || user.name || user.email}</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
+                            <p className="font-medium text-slate-900 dark:text-white">
+                              {user.fullName || user.name || user.email}
+                            </p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {user.email}
+                            </p>
                           </div>
                         </label>
                       ))}
@@ -430,7 +477,11 @@ Keep it clear, concise, and educational.
           {!geminiResponse && (
             <div className="text-center py-12">
               <p className="text-slate-600 dark:text-slate-300 text-lg">
-                Enter a description above and click <strong className="text-blue-600 dark:text-blue-400">Generate MCQs</strong> to get started!
+                Enter a description above and click{" "}
+                <strong className="text-blue-600 dark:text-blue-400">
+                  Generate MCQs
+                </strong>{" "}
+                to get started!
               </p>
             </div>
           )}
