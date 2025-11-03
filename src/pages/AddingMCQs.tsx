@@ -201,8 +201,7 @@ Keep it clear, concise, and educational.
     `;
 
     const url =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
-";
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     const options: RequestInit = {
       method: "POST",
       headers: {
