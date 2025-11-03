@@ -225,7 +225,7 @@ Use natural, fluent English.
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "X-goog-api-key": "AIzaSyA9j1sM0NvzWqbZP2t8x8KrByGy-Z6LfG4",
+            "X-goog-api-key": "AIzaSyAU2ULHJBssu3ysvG0lU_ylB3PzptMbGvw",
           },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
